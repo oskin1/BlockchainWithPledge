@@ -15,6 +15,7 @@ fun main(args: Array<String>) {
     val client = Client()
 
     client.sendCoinsTo(100, "Ivan")
+    client.sendCoinsTo(181, "Ivan")
     client.createDeposit()
     client.mine()
 
