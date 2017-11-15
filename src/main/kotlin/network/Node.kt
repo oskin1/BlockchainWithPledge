@@ -9,16 +9,13 @@ import blockchain.db.models.Transaction
 
 class Node() : BlockchainDelegate {
 
-    var isReadyToSentSome = false
-    //lateinit var messageToSent: Any
+    var ready = false
     lateinit var pool: HashMap<String, String>
-    var messageToType: Char = 'b'
+    var msgType: Char = 'b'
 
     private lateinit var socket: DatagramSocket
     private lateinit var nodeThreadListener: Thread
-    //private lateinit var nodeThreadSender: Thread
     private lateinit var listeningThread: Thread
-    //private lateinit var sendingThread: Thread
 
     private var active = false
 
@@ -29,12 +26,12 @@ class Node() : BlockchainDelegate {
     }
 
     override fun newBlockMined(block: Block) {
-        toPool(block)
+        broadcast(block)
         println("Сообщение о новом блоке отправлено")
     }
 
     override fun newTransactionCreated(transaction: Transaction) {
-        toPool(transaction)
+        broadcast(transaction)
         println("Сообщение о новой транзакции отправлено")
     }
 
@@ -49,7 +46,7 @@ class Node() : BlockchainDelegate {
             try {
                 socket = DatagramSocket(portList[i].toInt())
             } catch (e: SocketException) {
-                //e.printStackTrace()
+                e.printStackTrace()
                 continue
             }
             break
@@ -61,18 +58,6 @@ class Node() : BlockchainDelegate {
             println("Running OC node on ${socket.localAddress}:${socket.localPort}")
         }, "nodeThreadListener")
         nodeThreadListener.start()
-
-//        nodeThreadSender = Thread(Runnable {
-//            while (true) {
-//                if (this.isReadyToSentSome) {
-//                    println("***** Sending msg to pool")
-//                    toPool()
-//                    this.isReadyToSentSome = false
-//                }
-//            }
-//        }, "nodeThreadSender")
-//        nodeThreadSender.start()
-
     }
 
     fun shutDown() {
@@ -103,19 +88,19 @@ class Node() : BlockchainDelegate {
 
         val str = String(packet.data)
         //println(str)
-        process(packet)
+        unpack(packet)
     }
 
-    private fun process(packet: DatagramPacket) {
+    private fun unpack(packet: DatagramPacket) {
         // Verifies the given packet
         // Defines the packet type and decides how to treat it.
         val data = packet.data.sliceArray(1..(packet.length - 1))
         val packetType = packet.data[0]
         val k = fromJson(packetType.toChar(), String(data))
-        makeActionWithRP(k)
+        process(k)
     }
 
-    private fun makeActionWithRP(obj: Any){
+    private fun process(obj: Any){
         if(obj is Block){
             delegate?.newBlockReceived(obj)
             println(obj)
@@ -126,18 +111,7 @@ class Node() : BlockchainDelegate {
         println(obj)
     }
 
-    // Конец блока
-
-    //Блок методов отвечающих за связь с пулом узлов
-
-//    fun newMessage(message : Any) {
-//        this.isReadyToSentSome = true
-//        messageToSent = message
-//        println("** New MSG created: $message! ")
-//        println("***isReadyToSentSome = $isReadyToSentSome")
-//    }
-
-    private fun toPool(msg: Any) {
+    private fun broadcast(msg: Any) {
         if(!pool.isEmpty()){
             println("&&& ${pool.size}")
             for((port, address) in pool.iterator()){
@@ -146,10 +120,6 @@ class Node() : BlockchainDelegate {
             }
         }
     }
-
-    // Конец блока
-
-    //Блок методов отвечающих за отправку сообщения
 
     fun sendTo(message : Any, ip : String, port : String) {
         val sentMessage = toJson(message)
@@ -161,8 +131,6 @@ class Node() : BlockchainDelegate {
             println("** Node $ip:$port unreachable **")
         }
     }
-
-    //Конец блока
 
     private fun wrapPacket() {
         // Signs the packet

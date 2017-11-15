@@ -69,16 +69,6 @@ class Blockchain(val addr: String, val sig: String? = null) : NodeDelegate {
         delegate?.newBlockMined(block)
 
         if (commit) commitBlock(block)
-
-//        miningThread = Thread(Runnable {
-//            // Increment nonce until the valid hash found.
-//            while (!validNonce(block)) block.nonce++
-//
-//            delegate?.newBlockMined(block)
-//
-//            if (commit) commitBlock(block)
-//        }, "MiningThread")
-//        miningThread.start()
     }
 
     fun commitBlock(block: Block): Boolean {
